@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Elsayed85\Untouchable\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class UntouchableCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'untouchable';
 
     public $description = 'My command';
 
