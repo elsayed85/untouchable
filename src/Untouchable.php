@@ -53,14 +53,19 @@ class Untouchable
         return $files;
     }
 
-    public function verify($directory_hash)
+    public function verify($files)
     {
-        $files = $this->getAllPhpFiles($this->directory);
+        if (is_dir($files)) {
+            $files = $this->getAllPhpFiles($files);
+        } else {
+            $files = [$files];
+        }
+
         $results = [];
         foreach ($files as $file) {
             $this->setFile($file);
             $hash = $this->getHash();
-            $results[$file] = $hash == $directory_hash[$file];
+            $results[$file] = $hash == $files[$file];
         }
     }
 }
