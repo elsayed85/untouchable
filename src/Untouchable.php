@@ -2,52 +2,65 @@
 
 namespace Elsayed85\Untouchable;
 
+use function Pest\Laravel\get;
+
 class Untouchable
 {
-    protected $file;
-    protected $code;
+    protected $source_code;
     protected $hash;
+    protected $file;
+    protected $directory;
+    protected $secret;
 
-    protected function setCode($code)
+    public function setDirectory($directory)
     {
-        $this->code = $code;
-        $this->hash = hash_hmac('sha256', $code, config('untouchable.key'));
+        $this->directory = $directory;
     }
 
     public function setFile($file)
     {
         $this->file = $file;
-        $this->setCode(file_get_contents($this->file));
-        return $this;
     }
 
-    public function fileIsNotModified($expected_hash)
+    public function setSecret($secret)
     {
-        return hash_equals($this->hash, $expected_hash);
+        $this->secret = $secret;
     }
 
-    public function setDir($dir)
+    public function getSourceCode()
     {
-        $files = glob($dir . '/*');
-        $results = [];
-        foreach ($files as $file) {
-            if (is_dir($file)) {
-                $this->setDir($file);
-            } else {
-                $this->setFile($file);
-                $results[$file] = $this->hash;
+        return file_get_contents($this->file);
+    }
+
+    public function getHash()
+    {
+        return hash_hmac('sha256', $this->getSourceCode(), $this->secret ??  config('untouchable.key'));
+    }
+
+    public function getAllPhpFiles($directory)
+    {
+        $files = [];
+        foreach (scandir($directory) as $file) {
+            if ('.' === $file || '..' === $file) {
+                continue;
+            } elseif (is_dir($directory . '/' . $file)) {
+                $files = array_merge($files, $this->getAllPhpFiles($directory . '/' . $file));
+            } elseif (preg_match('/\.php$/', $file)) {
+                $files[] = $directory . '/' . $file;
             }
         }
-        return $results;
+
+        return $files;
     }
 
-    public function dirFilesIsNotModified($expected_results)
+    public function verify($directory_hash)
     {
+        $files = $this->getAllPhpFiles($this->directory);
         $results = [];
-        foreach ($expected_results as $file => $hash) {
+        foreach ($files as $file) {
             $this->setFile($file);
-            $results[$file] = $this->fileIsNotModified($hash);
+            $hash = $this->getHash();
+            $results[$file] = $hash == $directory_hash[$file];
         }
-        return $results;
     }
 }
